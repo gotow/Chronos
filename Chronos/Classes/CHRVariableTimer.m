@@ -40,10 +40,10 @@ static NSString * const CHRVariableTimerExecutionQueueNamePrefix = @"com.chronus
 @interface CHRVariableTimer () {
     volatile int32_t    _running;
     volatile int32_t    _valid;
-    volatile NSUInteger _nextInvocation;
-    volatile NSUInteger _lastInvocation;
-    volatile bool       _executionBlockDidSetTimer;
-    volatile bool       _executing;
+    volatile int32_t    _nextInvocation;
+    volatile int32_t    _lastInvocation;
+    volatile uint32_t   _executionBlockDidSetTimer;
+    volatile uint32_t   _executing;
 }
 
 @property (readonly) dispatch_source_t timer;
@@ -107,14 +107,15 @@ static NSString * const CHRVariableTimerExecutionQueueNamePrefix = @"com.chronus
         dispatch_source_set_event_handler(_timer, ^{
             CHRVariableTimer *strong = weak;
             if (strong) {
-                strong->_executing = true;
-                strong->_nextInvocation = strong->_lastInvocation + 1;
-                strong->_executionBlock(weak, strong->_lastInvocation++);
-                strong->_executing = false;
+                OSAtomicOr32(true, &strong->_executing);
+                OSAtomicCompareAndSwap32(strong->_nextInvocation, strong->_lastInvocation + 1, &strong->_nextInvocation);
+                strong->_executionBlock(weak, strong->_lastInvocation);
+                OSAtomicIncrement32(&strong->_lastInvocation);
+                OSAtomicAnd32(false, &strong->_executing);
                 if (!strong->_executionBlockDidSetTimer) {
                     [strong schedule];
                 }
-                strong->_executionBlockDidSetTimer = false;
+                OSAtomicAnd32(false, &strong->_executionBlockDidSetTimer);
             }
         });
     }
@@ -160,7 +161,10 @@ static NSString * const CHRVariableTimerExecutionQueueNamePrefix = @"com.chronus
         } else {
             [self schedule];
         }
-        _executionBlockDidSetTimer = (_executing) ? true : false;
+        if(_executing)
+            OSAtomicOr32(true, &_executionBlockDidSetTimer);
+        else
+            OSAtomicAnd32(false, &_executionBlockDidSetTimer);
         dispatch_resume(self.timer);
     }
 }
