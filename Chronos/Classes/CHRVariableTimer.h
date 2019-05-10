@@ -26,7 +26,7 @@
 
 #pragma mark - Imports
 
-@import Foundation;
+#import <Foundation/Foundation.h>
 #import "CHRRepeatingTimer.h"
 #import <libkern/OSAtomic.h>
 
