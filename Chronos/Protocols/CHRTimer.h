@@ -26,7 +26,7 @@
 
 #pragma mark - Imports
 
-@import Foundation;
+#import <Foundation/Foundation.h>
 
 
 #pragma mark - Type Definitions
