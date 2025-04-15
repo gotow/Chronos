@@ -26,7 +26,7 @@
 
 #pragma mark - Imports
 
-#import "CHRTimer.h"
+#import <Chronos/CHRTimer.h>
 
 
 #pragma mark - Forward Declarations
